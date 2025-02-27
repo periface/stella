@@ -1,11 +1,17 @@
 export type Product = {
-    seller: string;
+    sellerId: string;
     product: string;
     price: number
     tamanio: string;
     description: string
-    image: string;
     pImage: string;
+    sellerObj: Seller;
+}
+export type Seller = {
+    Id: string;
+    Nombre: string;
+    Logo: string;
+    Contacto: string;
 }
 export type CartItem = {
     product: Product;
