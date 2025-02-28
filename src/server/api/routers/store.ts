@@ -1,73 +1,35 @@
-
+import { type ShoppingCart } from "@periface/app/_models/store";
 import {
     createTRPCRouter,
     publicProcedure,
 } from "@periface/server/api/trpc";
-import { env } from "@periface/env";
-import { type Seller, type Product } from "@periface/app/_models/store";
-const APPSHEETSID = env.APPSHEETSID;
-const APPSHEETSSECRET = env.APPSHEETSSECRET;
-const APPSHEETCONFIG = {
-    rest: {
-        products: {
-            url: `https://www.appsheet.com/api/v2/apps/${APPSHEETSID}/tables/Productos/Action?applicationAccessKey=${APPSHEETSSECRET}`,
-        },
-        vendedor: {
-            url: `https://www.appsheet.com/api/v2/apps/${APPSHEETSID}/tables/Vendedor/Action?applicationAccessKey=${APPSHEETSSECRET}`,
-        },
-    }
-}
-async function getSeller(sellerId: string) {
-    console.log('sellerId', sellerId)
-    const response = await fetch(APPSHEETCONFIG.rest.vendedor.url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-
-        body: JSON.stringify({
-            "Action": "Find",
-            "Properties": {
-                "Selector": `Filter(Vendedor, [Id] = "${sellerId}")`
+import { orderService, sellerService, standService } from "@periface/server/services/store";
+import { z } from "zod";
+export const storeRouter = createTRPCRouter({
+    getSellersByStand: publicProcedure.input(z.object({ stand: z.string() }))
+        .query(async (props) => {
+            try {
+                const response = await sellerService
+                    .getSellersByStand(props.input.stand)
+                return response;
+            }
+            catch (e) {
+                console.log(e)
+                return {
+                    sellers: []
+                };
             }
         }),
-    })
-    const data = await response.json() as Seller[];
-    return data ?? [];
-}
-async function mapDataProductsAsync(data: Product[]) {
-    const mappedData = await Promise.all(data.map(async (product) => {
-        const seller = await getSeller(product.sellerId);
-        const foundSeller = seller.find((s) => s.Id === product.sellerId);
-        console.log('foundSeller', foundSeller)
-        return {
-            ...product,
-            sellerObj: foundSeller ?? { Id: "", Nombre: "", Logo: "", Contacto: "" }
-        }
-    }))
-    return mappedData;
-}
-export const storeRouter = createTRPCRouter({
     getProducts: publicProcedure
-        .query(async () => {
+        .input(z.object({
+            stand: z.string()
+        }))
+        .query(async (props) => {
             try {
-                const response = await fetch(APPSHEETCONFIG.rest.products.url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-
-                    body: JSON.stringify({
-                        "Action": "Find"
-                    }),
-                })
-                const data = await response.json() as Product[];
-                const mappedData = await mapDataProductsAsync(data);
+                const productos = await standService.getProducts(props.input.stand)
                 return {
-                    products: mappedData
-                };
+                    products: productos
+                }
             }
             catch (e) {
                 console.log(e)
@@ -76,4 +38,61 @@ export const storeRouter = createTRPCRouter({
                 };
             }
         }),
+
+    //export type CartItem = {
+    //    product: Product;
+    //    quantity: number;
+    //    specifications: string;
+    //}
+    //export type ShoppingCart = {
+    //    items: CartItem[];
+    //}
+    //
+    //id: string;
+    //sellerId: string;
+    //product: string;
+    //price: number
+    //tamanio: string;
+    //descripcion: string
+    //pImage: string;
+    //sellerObj: Seller;
+    placeOrder: publicProcedure.input(z.object({
+        cart: z.object({
+            items: z.array(z.object({
+                product: z.object({
+                    id: z.string(),
+                    sellerId: z.string(),
+                    product: z.string(),
+                    price: z.number(),
+                    tamanio: z.string(),
+                    descripcion: z.string(),
+                    pImage: z.string(),
+                    sellerObj: z.object({
+                        Id: z.string(),
+                        Nombre: z.string(),
+                        Logo: z.string(),
+                        Contacto: z.string(),
+                    }),
+                }),
+                specifications: z.string(),
+                quantity: z.number(),
+            })),
+        }),
+        email: z.string(),
+        phone: z.string(),
+        standId: z.string(),
+    })).mutation(async (props) => {
+        try {
+            const response = await orderService.placeOrder(props.input.cart,
+                props.input.email,
+                props.input.phone,
+                props.input.standId
+            )
+            return response;
+        }
+        catch (e) {
+            console.log(e)
+            return [];
+        }
+    }),
 });

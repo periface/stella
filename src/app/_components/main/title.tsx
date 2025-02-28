@@ -3,6 +3,7 @@ import autoAnimate from "@formkit/auto-animate";
 import { useEffect, useRef, useState } from "react";
 export type TitleProps = {
     onReveal?: () => void;
+    mesa: string;
 }
 export default function Title(props?: TitleProps) {
 
@@ -28,8 +29,8 @@ export default function Title(props?: TitleProps) {
     }, 1000);
     return <div ref={parent} className="flex justify-center items-center">
         {reveal && <>
-            <h1 className="text-5xl">Hola <br />somos el Stand
-                #63</h1>
+            <h1 className="text-5xl">Stand
+                #{props?.mesa}</h1>
         </>
         }
     </div>
