@@ -15,7 +15,7 @@ const HeaderTitle = (props: HeaderTitleProps) => {
     const [showIcon, setShowIcon] = useState(true);
     const logos = props.sellers.map((seller) => {
         return {
-            src: seller.Logo,
+            src: seller.imageUrl,
             alt: seller.Nombre,
         }
     });

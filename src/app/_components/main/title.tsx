@@ -29,8 +29,8 @@ export default function Title(props?: TitleProps) {
     }, 1000);
     return <div ref={parent} className="flex justify-center items-center">
         {reveal && <>
-            <h1 className="text-5xl">Stand
-                #{props?.mesa}</h1>
+            <h1 className="text-5xl">
+                {props?.mesa}</h1>
         </>
         }
     </div>

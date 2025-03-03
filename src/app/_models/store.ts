@@ -7,6 +7,7 @@ export type Product = {
     descripcion: string
     pImage: string;
     sellerObj: Seller;
+    imageUrl: string;
 }
 export type StandSeller = {
     IdVendedor: string;
@@ -31,6 +32,7 @@ export type Seller = {
     Nombre: string;
     Logo: string;
     Contacto: string;
+    imageUrl: string;
 }
 export type CarritoCompra = {
     Id: string;
@@ -40,6 +42,8 @@ export type CarritoCompra = {
     Total: number;
     Indicaciones: string;
     SellerId: string;
+    OrderId: string;
+    Stand:string;
 }
 export type CartItem = {
     product: Product;

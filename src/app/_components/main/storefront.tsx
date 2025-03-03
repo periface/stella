@@ -7,6 +7,7 @@ import AddToCart from "./addToCartDialog";
 import { useEffect } from "react";
 export type StoreFrontProps = {
     store: string
+    byStoreId?: boolean
 }
 const StoreFront = (props: StoreFrontProps) => {
 
@@ -24,7 +25,8 @@ const StoreFront = (props: StoreFrontProps) => {
     }, []);
     const store = useMainStore();
     const { data, error } = api.store.getProducts.useQuery({
-        stand: props.store
+        stand: props.store,
+        byStoreId: props.byStoreId
     });
     if (error) {
         return <div className="text-center">Error: {error.message}</div>;
@@ -53,7 +55,7 @@ const StoreFront = (props: StoreFrontProps) => {
                         </div>
                         <p>{producto.descripcion}</p>
                         <div className="relative w-full h-full">
-                            <AppSheetImg url={producto.pImage} />
+                            <AppSheetImg url={producto.imageUrl} />
                             <button type="button" onClick={() => {
                                 openAddToCart(producto)
                             }}
@@ -66,7 +68,7 @@ const StoreFront = (props: StoreFrontProps) => {
                                 opacity: 0.5,
                             }}>
                                 <div className="p-2" >
-                                    <AppSheetImg url={producto.sellerObj.Logo} />
+                                    <AppSheetImg url={producto.sellerObj.imageUrl} />
                                 </div>
                             </div>
                         </div>

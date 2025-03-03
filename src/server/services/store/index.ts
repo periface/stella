@@ -116,7 +116,7 @@ async function getProductsBySellerId(sellerId: string) {
     const data = await response.json() as Product[];
     const mappedData = await mapDataProductsAsync(data);
     return {
-        products: mappedData
+        products: mappedData as Product[]
     };
 }
 async function getProductsByStand(standId: string) {
@@ -124,44 +124,39 @@ async function getProductsByStand(standId: string) {
     const response = await getSellersByStand(standId);
     await Promise.all(response.sellers.map(async seller => {
         const response = await getProductsBySellerId(seller.Id);
-        response.products.forEach(p => productos.push(p))
+        response.products.forEach(p => {
+            productos.push({
+                ...p,
+                sellerObj: seller
+            })
+        })
     }))
     return productos;
 }
-async function storeCart(cart: ShoppingCart, email: string, phone: string) {
-    const sessionId = email + phone + Date.now();
-    const rows: Record<string, string | number>[] = [];
-    cart.items.forEach((item) => {
-        rows.push({
-            "SessionId": sessionId,
-            "ProductId": item.product.id,
-            "Qty": item.quantity,
-            "Total": item.product.price * item.quantity,
-            "Indicaciones": item.specifications
-        })
-    })
-    const response = await fetch(APPSHEETCONFIG.rest.carritoCompra.url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-
-        body: JSON.stringify({
-            "Action": "Add",
-            "Properties": {
+async function storeCart(cartRows: Record<string, string | number>[]) {
+    try {
+        console.log("Cart rows", cartRows);
+        const response = await fetch(APPSHEETCONFIG.rest.carritoCompra.url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
-            "Rows": rows
-        }),
-    })
-    const data = await response.json() as { Rows: CarritoCompra[] };
-    console.log("Cart stored", data);
-    const rowsFixed = data.Rows.map((item) => {
-        const seller = cart.items.find((i) => i.product.id === item.ProductId);
-        item.SellerId = seller?.product.sellerId ?? "";
-        return item;
-    })
-    return rowsFixed;
+
+            body: JSON.stringify({
+                "Action": "Add",
+                "Properties": {
+                },
+                "Rows": cartRows
+            }),
+        })
+        const data = await response.json() as { Rows: CarritoCompra[] };
+        return data.Rows;
+    }
+    catch (e) {
+        console.error(e);
+        return [];
+    }
 }
 export type GroupedCart = {
     sellerId: string;
@@ -185,25 +180,46 @@ function groupBySeller(cart: CarritoCompra[]) {
     })
     return groups;
 }
-async function placeOrder(cart: ShoppingCart,
-    email: string,
-    phone: string,
-    standId: string
-) {
-    const storeCartResponse = await storeCart(cart, email, phone);
-    const rows = [];
-    const groupedCart = groupBySeller(storeCartResponse);
-    console.log("Grouped cart", groupedCart);
+const makeCartRows = (cart: ShoppingCart, orderId: string, sessionId: string) => {
+
+    const rows: Record<string, string | number>[] = [];
+    cart.items.forEach((item) => {
+        rows.push({
+            "SessionId": sessionId,
+            "ProductId": item.product.id,
+            "Qty": item.quantity,
+            "Total": item.product.price * item.quantity,
+            "Indicaciones": item.specifications,
+            "OrderId": orderId
+        })
+    })
+    return rows;
+}
+async function storeOrder(standId: string, cart: ShoppingCart, email: string, phone: string) {
+    const cartItems = cart.items.map((item) => {
+        return {
+            "SessionId": "",
+            "ProductId": item.product.id,
+            "Qty": item.quantity,
+            "Total": item.product.price * item.quantity,
+            "Indicaciones": item.specifications,
+            "SellerId": item.product.sellerId,
+            "OrderId": "",
+            "Stand": standId
+        } as CarritoCompra
+    })
+    const rows: Record<string, string | number | boolean>[] = [];
+    const groupedCart = groupBySeller(cartItems);
     for (const group of groupedCart) {
         rows.push({
             "Stand": standId,
             "Vendedor": group.sellerId,
-            "Carrito": group.cartId,
             "Aceptada": false,
             "Status": "Pendiente",
             "Email": email,
             "Telefono": phone,
             "Nombre": "",
+            "Total": group.items.reduce((acc, item) => acc + item.Total, 0)
         }) // add the group to the order
     }
     const response = await fetch(APPSHEETCONFIG.rest.ordenes.url, {
@@ -220,8 +236,29 @@ async function placeOrder(cart: ShoppingCart,
             "Rows": rows
         }),
     })
-    const data = await response.json() as Order[];
-    return data;
+    const data = await response.json() as { Rows: Order[] };
+    return {
+        orders: data,
+        groupedCart
+    };
+}
+async function placeOrder(cart: ShoppingCart,
+    email: string,
+    phone: string,
+    standId: string
+) {
+
+    const sessionId = email + phone + Date.now();
+    const { orders, groupedCart } = await storeOrder(standId, cart, email, phone);
+    for (const group of groupedCart) {
+        const order = orders.Rows.find((order) => order.Vendedor === group.sellerId);
+        if (!order) {
+            throw new Error("Order not found");
+        }
+        const rows = makeCartRows(cart, order?.Id, sessionId);
+        const storedCarts = await storeCart(rows);
+        console.log("Stored carts", storedCarts);
+    }
 }
 const sellerService = {
     getSellerById,

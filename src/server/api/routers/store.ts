@@ -1,4 +1,4 @@
-import { type ShoppingCart } from "@periface/app/_models/store";
+import { Product, type ShoppingCart } from "@periface/app/_models/store";
 import {
     createTRPCRouter,
     publicProcedure,
@@ -6,6 +6,18 @@ import {
 import { orderService, sellerService, standService } from "@periface/server/services/store";
 import { z } from "zod";
 export const storeRouter = createTRPCRouter({
+    getStoreById: publicProcedure
+        .input(z.object({ id: z.string() }))
+        .query(async (props) => {
+            try {
+                const response = await sellerService.getSellerById(props.input.id)
+                return response;
+            }
+            catch (e) {
+                console.log(e)
+                return null;
+            }
+        }),
     getSellersByStand: publicProcedure.input(z.object({ stand: z.string() }))
         .query(async (props) => {
             try {
@@ -22,11 +34,19 @@ export const storeRouter = createTRPCRouter({
         }),
     getProducts: publicProcedure
         .input(z.object({
-            stand: z.string()
+            stand: z.string(),
+            byStoreId: z.boolean().optional()
         }))
         .query(async (props) => {
             try {
-                const productos = await standService.getProducts(props.input.stand)
+                let productos: Product[] = []
+                if (props.input.byStoreId) {
+                    productos = (await sellerService.getProducts(props.input.stand)).products
+                }
+                else {
+
+                    productos = await standService.getProducts(props.input.stand)
+                }
                 return {
                     products: productos
                 }
@@ -83,7 +103,8 @@ export const storeRouter = createTRPCRouter({
         standId: z.string(),
     })).mutation(async (props) => {
         try {
-            const response = await orderService.placeOrder(props.input.cart,
+            const response = await orderService.placeOrder(
+                props.input.cart as ShoppingCart,
                 props.input.email,
                 props.input.phone,
                 props.input.standId

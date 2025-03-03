@@ -11,7 +11,7 @@ function buildImageUrl(pUrl: string) {
 const AppSheetImg = (props: AppSheetImgProps) => {
     const { url: pUrl } = props;
     return <>
-        <img style={props.style} src={buildImageUrl(pUrl)} alt={pUrl}
+        <img style={props.style} src={(pUrl)} alt={pUrl}
             className={props.className}
         />
     </>

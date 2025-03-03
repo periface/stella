@@ -71,33 +71,34 @@ const AddToCart = () => {
                     <DialogDescription>
                     </DialogDescription>
                 </DialogHeader>
-
-                <h2 className="text-2xl text-stella font-bold mb-2">{store.selectedProduct?.product}</h2>
-                <div className="grid grid-cols-[30%_70%] items-center justify-center">
-                    <div>
-                        <AppSheetImg className="w-full rounded-lg" url={store.selectedProduct?.pImage ?? ""} />
-                    </div>
-                    <div className="grid grid-cols-1 justify-center justify-items-end">
-                        <div className="w-1/2">
-                            <Label>Cantidad</Label>
-                            <Input type="number" step={1} min={1} value={quantity} onChange={(e) => {
-                                setQuantity(parseInt(e.target.value));
-                            }} />
-                        </div>
+                {store.selectedProduct && <>
+                    <h2 className="text-2xl text-stella font-bold mb-2">{store.selectedProduct.product}</h2>
+                    <div className="grid grid-cols-[30%_70%] items-center justify-center">
                         <div>
-                            <p className="text-xl mt-2 text-stella font-bold">Total: ${totalPrice}MXN</p>
+                            <AppSheetImg className="w-full rounded-lg" url={store.selectedProduct.imageUrl} />
+                        </div>
+                        <div className="grid grid-cols-1 justify-center justify-items-end">
+                            <div className="w-1/2">
+                                <Label>Cantidad</Label>
+                                <Input type="number" step={1} min={1} value={quantity} onChange={(e) => {
+                                    setQuantity(parseInt(e.target.value));
+                                }} />
+                            </div>
+                            <div>
+                                <p className="text-xl mt-2 text-stella font-bold">Total: ${totalPrice}MXN</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="grid gap-4 py-4">
-                    <p>
-                        {store.selectedProduct?.descripcion}
-                        <br />
-                    </p>
-                    <Textarea placeholder="Instrucciones adicionales" value={instructions} onChange={(e) => {
-                        setInstructions(e.target.value);
-                    }} />
-                </div>
+                    <div className="grid gap-4 py-4">
+                        <p>
+                            {store.selectedProduct?.descripcion}
+                            <br />
+                        </p>
+                        <Textarea placeholder="Instrucciones adicionales" value={instructions} onChange={(e) => {
+                            setInstructions(e.target.value);
+                        }} />
+                    </div>
+                </>}
                 <DialogFooter>
                     <Button type="button" onClick={() => {
                         store.selectProduct(null);
