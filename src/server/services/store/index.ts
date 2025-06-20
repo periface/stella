@@ -19,9 +19,65 @@ const APPSHEETCONFIG = {
         },
         carritoCompra: {
             url: `https://www.appsheet.com/api/v2/apps/${APPSHEETSID}/tables/CarritoCompra/Action?applicationAccessKey=${APPSHEETSSECRET}`,
+        },
+        notificacionesEnviadas: {
+            url: `https://www.appsheet.com/api/v2/apps/${APPSHEETSID}/tables/NOTIFICACIONES%20DE%20CORREO/Action?applicationAccessKey=${APPSHEETSSECRET}`,
         }
-
     }
+}
+export type NotificacionEnviada = {
+    ID_Notificacion: string;
+    Correos: string;
+    Contenido: string;
+    Fecha_De_Notificacion: string;
+    Revision: string;
+    Leido: boolean;
+    FechaLeido: string;
+}
+async function getNotificacionesEnviadas() {
+    const response = await fetch(APPSHEETCONFIG.rest.notificacionesEnviadas.url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+
+        body: JSON.stringify({
+            "Action": "Find"
+        }),
+    })
+    const data = await response.json() as NotificacionEnviada[];
+    return {
+        notificaciones: data
+    };
+
+}
+async function updateLeido(notificacionId: string) {
+    const response = await fetch(APPSHEETCONFIG.rest.notificacionesEnviadas.url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            "Action": "Edit",
+            "Properties": {
+            },
+            "Rows": [
+                {
+                    "ID_Notificacion": notificacionId,
+                    "Leido": true,
+                    "FechaLeido": new Date().toISOString()
+                }
+            ]
+        }),
+    })
+    console.log("Response from updateLeido", response);
+    console.log("Response status", response.status);
+    console.log("Response headers", response.headers);
+    console.log("Response ok", response.ok);
+    const data = await response.json() as NotificacionEnviada[];
+    return data;
 }
 async function getSellersByStand(standId: string) {
     const response = await fetch(APPSHEETCONFIG.rest.standsVendedor.url, {
@@ -274,7 +330,11 @@ const standService = {
 const orderService = {
     placeOrder
 }
+const notificationService = {
+    getNotificacionesEnviadas,
+    updateLeido
+}
 
-export { orderService, sellerService, standService, productsService }
+export { notificationService, orderService, sellerService, standService, productsService }
 
 
