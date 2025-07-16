@@ -33,6 +33,7 @@ export type NotificacionEnviada = {
     Revision: string;
     Leido: boolean;
     FechaLeido: string;
+    Lecturas: string
 }
 async function getNotificacionesEnviadas() {
     const response = await fetch(APPSHEETCONFIG.rest.notificacionesEnviadas.url, {
@@ -53,6 +54,36 @@ async function getNotificacionesEnviadas() {
 
 }
 async function updateLeido(notificacionId: string) {
+
+    const responseFind = (await fetch(APPSHEETCONFIG.rest.notificacionesEnviadas.url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            "Action": "Find",
+            "Properties": {
+            },
+            "Rows": [
+                {
+                    "ID_Notificacion": notificacionId,
+                }
+            ]
+        }),
+    }))
+    const notificacion = (await responseFind.json()) as NotificacionEnviada[]
+    // dont annoy appsheets
+    await new Promise(resolve => {
+        setTimeout(() => {
+            resolve([]);
+        }, 500)
+    })
+    let lecturasCtr = 0;
+    if (notificacion[0]) {
+        lecturasCtr = parseInt(notificacion[0].Lecturas);
+    }
+    const lecturasCounter = lecturasCtr + 1;
     const response = await fetch(APPSHEETCONFIG.rest.notificacionesEnviadas.url, {
         method: 'POST',
         headers: {
@@ -67,15 +98,12 @@ async function updateLeido(notificacionId: string) {
                 {
                     "ID_Notificacion": notificacionId,
                     "Leido": true,
-                    "FechaLeido": new Date().toISOString()
+                    "FechaLeido": new Date().toISOString(),
+                    "Lecturas": (lecturasCounter)
                 }
             ]
         }),
     })
-    console.log("Response from updateLeido", response);
-    console.log("Response status", response.status);
-    console.log("Response headers", response.headers);
-    console.log("Response ok", response.ok);
     const data = await response.json() as NotificacionEnviada[];
     return data;
 }
